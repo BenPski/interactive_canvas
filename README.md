@@ -14,6 +14,7 @@ events and rendering to be stopped call the `stop` method.
 
 Simple example of drawing a circle that can be moved around.
 ```javascript
+import { InteractiveCanvas } from "interactive_canvas";
 const canvas = document.getElementById("myCanvas");
 
 function draw(ctx) {
@@ -31,6 +32,7 @@ More complex example of grid lines, so you need to know the original coordinate
 system since things need to line up with the origin of the canvas.
 
 ```javascript
+import { InteractiveCanvas } from "interactive_canvas";
 const CELL_SIZE = 25;
 const canvas = document.getElementById("myCanvas");
 
@@ -40,7 +42,7 @@ function draw(ctx) {
     var top_left = ctx.transformedPoint(0, 0);
     var bottom_right = ctx.transformedPoint(canvas.width, canvas.height);
 
-i   var start_row = Math.ceil(top_left.x/CELL_SIZE) - 1;
+    var start_row = Math.ceil(top_left.x/CELL_SIZE) - 1;
     var end_row = Math.ceil(bottom_right.x/CELL_SIZE) + 1;
     var start_col = Math.ceil(top_left.y/CELL_SIZE) - 1;
     var end_col = Math.ceil(bottom_right.y/CELL_SIZE) + 1;
