@@ -1,0 +1,19 @@
+{
+  "name": "interactive_canvas",
+  "version": "0.1.0",
+  "description": "Make a canvas zoomable a pannable with your mouse.",
+  "main": "interactive_canvas.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "benpski",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BenPski/interactive_canvas.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BenPski/interactive_canvas/issues"
+  },
+  "homepage": "https://github.com/BenPski/interactive_canvas#readme"
+}
