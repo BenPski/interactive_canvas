@@ -104,12 +104,13 @@ export class InteractiveCanvas {
         }
         let points = [];
         for (let i=0; i<this.touches.length; i++) {
-            points.push({x: this.touches[i].pageX, y: this.touches[i].pageY});
+            points.push(this.ctx.transformedPoint(this.touches[i].pageX, this.touches[i].pageY));
         }
         let center = centroid(points);
         this.lastX = center.x;
         this.lastY = center.y;
-        this.dragStart = this.ctx.transformedPoint(this.lastX,this.lastY);
+        this.dragStart = {x:this.lastX, y:this.lastY};
+        this.scaleStart = averageDistance(points, center);
     }
 
     handleTouchMove(evt) {
@@ -162,7 +163,7 @@ export class InteractiveCanvas {
             let center = centroid(points);
             this.lastX = center.x;
             this.lastY = center.y;
-            this.dragStart = this.ctx.transformedPoint(this.lastX,this.lastY);
+            this.dragStart = {x:this.lastX, y:this.lastY};
             this.scaleStart = averageDistance(points, center);
         }
     }
