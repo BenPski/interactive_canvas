@@ -9,6 +9,7 @@ export class InteractiveCanvas {
         this.lastX=this.canvas.width/2;
         this.lastY=this.canvas.height/2;
         this.dragStart=null;
+        this.scaleStart=null;
         this.touches=[];
         this.scaleFactor = 1.1;
         this.animationId = null;
@@ -114,31 +115,27 @@ export class InteractiveCanvas {
     handleTouchMove(evt) {
         evt.preventDefault();
         const touches = evt.changedTouches;
-        let prev_points = [];
         let points = [];
         for (let i=0; i<touches.length; i++) {
             let idx = this.getTouchIndex(touches[i]);
             if (idx >= 0) {
                 let touch_curr = touches[i];
-                let touch_prev = this.touches[idx];
-                prev_points.push({x: touch_prev.pageX, y: touch_prev.pageY});
-                points.push({x: touch_curr.pageX, y: touch_curr.pageY});
+                points.push(this.ctx.transformedPoint(touch_curr.pageX, touch_curr.pageY));
             } else {
                 console.log("A touch seems to have appeared without a start event", touches[i]); 
             }
         }
-        let prev_center = centroid(prev_points);
         let center = centroid(points);
         this.lastX = center.x;
         this.lastY = center.y;
         if (this.dragStart) {
-            let pt = this.ctx.transformedPoint(this.lastX,this.lastY);
+            let pt = {x: this.lastX, y: this.lastY};
             this.ctx.translate(pt.x-this.dragStart.x,pt.y-this.dragStart.y);
         }
+
         if (points.length > 1) {
-            let r_new = averageDistance(points, center);
-            let r_old = averageDistance(prev_points, prev_center);
-            let scale = r_new/r_old;
+            let scale_new = averageDistance(points, center);
+            let scale = scale_new/this.scaleStart;
             this.ctx.scale(scale, scale);
         }
     }
@@ -153,6 +150,20 @@ export class InteractiveCanvas {
             } else {
                 console.log("A touch seems to have appeared without a start event", touches[i]); 
             }
+        }
+        if (this.touches.length == 0) {
+            this.dragStart = null;
+            this.scaleStart = null;
+        } else {
+            let points = [];
+            for (let i=0; i<this.touches.length; i++) {
+                points.push(this.ctx.transformedPoint(this.touches[i].pageX, this.touches[i].pageY));
+            }
+            let center = centroid(points);
+            this.lastX = center.x;
+            this.lastY = center.y;
+            this.dragStart = this.ctx.transformedPoint(this.lastX,this.lastY);
+            this.scaleStart = averageDistance(points, center);
         }
     }
 
