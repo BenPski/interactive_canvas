@@ -12,33 +12,34 @@ export class InteractiveCanvas {
         this.dragged=false;
         this.scaleFactor = 1.1;
         this.animationId = null;
-        // might be a good way of removing the event handlers instead, but I
-        // didn't figure out a nice way of dealing with the capturing of variables
-        // so just a flag to disable/enable
-        this.events_enabled = false;
-        this.setup_listeners();
+        // I don't understand why bind is necessary, but 'this' isn't properly
+        // captured otherwise in the listener methods
+        this.mouseDownListener = this.handleMouseDown.bind(this);
+        this.mouseMoveListener = this.handleMouseMove.bind(this);
+        this.mouseUpListener = this.handleMouseUp.bind(this);
+        this.scrollListener = this.handleScroll.bind(this);
     }
 
     setup_listeners() {
-        this.canvas.addEventListener('mousedown',(evt) => this.handleMouseDown(evt), false);
-        this.canvas.addEventListener('mousemove',(evt) => this.handleMouseMove(evt), false);
-        this.canvas.addEventListener('mouseup',(evt) => this.handleMouseUp(evt),false);
-        this.canvas.addEventListener('DOMMouseScroll',(evt) => this.handleScroll(evt),false);
-        this.canvas.addEventListener('mousewheel',(evt) => this.handleScroll(evt),false);
+        this.canvas.addEventListener('mousedown',this.mouseDownListener, false);
+        this.canvas.addEventListener('mousemove',this.mouseMoveListener, false);
+        this.canvas.addEventListener('mouseup',this.mouseUpListener,false);
+        this.canvas.addEventListener('DOMMouseScroll',this.scrollListener,false);
+        this.canvas.addEventListener('mousewheel',this.scrollListener,false);
     }
 
     remove_listeners() {
-        this.canvas.removeEventListener('mousedown',(evt) => this.handleMouseDown(evt), false);
-        this.canvas.removeEventListener('mousemove',(evt) => this.handleMouseMove(evt), false);
-        this.canvas.removeEventListener('mouseup',(evt) => this.handleMouseUp(evt),false);
-        this.canvas.removeEventListener('DOMMouseScroll',(evt) => this.handleScroll(evt),false);
-        this.canvas.removeEventListener('mousewheel',(evt) => this.handleScroll(evt),false);
+        this.canvas.removeEventListener('mousedown',this.mouseDownListener, false);
+        this.canvas.removeEventListener('mousemove',this.mouseMoveListener, false);
+        this.canvas.removeEventListener('mouseup',this.mouseUpListener,false);
+        this.canvas.removeEventListener('DOMMouseScroll',this.scrollListener,false);
+        this.canvas.removeEventListener('mousewheel',this.scrollListener,false);
     }
 
     clear() {
         // Clear the entire canvas
-        var p1 = this.ctx.transformedPoint(0,0);
-        var p2 = this.ctx.transformedPoint(this.canvas.width,this.canvas.height);
+        let p1 = this.ctx.transformedPoint(0,0);
+        let p2 = this.ctx.transformedPoint(this.canvas.width,this.canvas.height);
         this.ctx.clearRect(p1.x,p1.y,p2.x-p1.x,p2.y-p1.y);
     }
 
@@ -48,92 +49,84 @@ export class InteractiveCanvas {
     }
 
     zoom(clicks){
-        var pt = this.ctx.transformedPoint(this.lastX,this.lastY);
+        let pt = this.ctx.transformedPoint(this.lastX,this.lastY);
         this.ctx.translate(pt.x,pt.y);
-        var factor = Math.pow(this.scaleFactor,clicks);
+        let factor = Math.pow(this.scaleFactor,clicks);
         this.ctx.scale(factor,factor);
         this.ctx.translate(-pt.x,-pt.y);
         this.redraw();
     }
 
     handleMouseDown(evt) {
-        if (this.events_enabled) {
-            this.lastX = evt.offsetX || (evt.pageX - this.canvas.offsetLeft);
-            this.lastY = evt.offsetY || (evt.pageY - this.canvas.offsetTop);
-            this.dragStart = this.ctx.transformedPoint(this.lastX,this.lastY);
-            this.dragged = false;
-        }
+        this.lastX = evt.offsetX || (evt.pageX - this.canvas.offsetLeft);
+        this.lastY = evt.offsetY || (evt.pageY - this.canvas.offsetTop);
+        this.dragStart = this.ctx.transformedPoint(this.lastX,this.lastY);
+        this.dragged = false;
     }
 
     handleMouseMove(evt) {
-        if (this.events_enabled) {
-            this.lastX = evt.offsetX || (evt.pageX - this.canvas.offsetLeft);
-            this.lastY = evt.offsetY || (evt.pageY - this.canvas.offsetTop);
-            this.dragged = true;
-            if (this.dragStart){
-                var pt = this.ctx.transformedPoint(this.lastX,this.lastY);
-                this.ctx.translate(pt.x-this.dragStart.x,pt.y-this.dragStart.y);
-                this.redraw();
-            }
+        this.lastX = evt.offsetX || (evt.pageX - this.canvas.offsetLeft);
+        this.lastY = evt.offsetY || (evt.pageY - this.canvas.offsetTop);
+        this.dragged = true;
+        if (this.dragStart){
+            let pt = this.ctx.transformedPoint(this.lastX,this.lastY);
+            this.ctx.translate(pt.x-this.dragStart.x,pt.y-this.dragStart.y);
+            this.redraw();
         }
     }
 
     handleMouseUp(evt) {
-        if (this.events_enabled) {
-            this.dragStart = null;
-            if (!this.dragged) this.zoom(evt.shiftKey ? -1 : 1 );
-        }
+        this.dragStart = null;
+        if (!this.dragged) this.zoom(evt.shiftKey ? -1 : 1 );
     }
 
     handleScroll(evt){
-        if (this.events_enabled) {
-            var delta = evt.wheelDelta ? evt.wheelDelta/40 : evt.detail ? -evt.detail : 0;
-            if (delta) this.zoom(delta);
-            return evt.preventDefault() && false;
-        }
+        let delta = evt.wheelDelta ? evt.wheelDelta/40 : evt.detail ? -evt.detail : 0;
+        if (delta) this.zoom(delta);
+        return evt.preventDefault() && false;
     };
 
     // Adds ctx.getTransform() - returns a DOMMatrix
     // Adds ctx.transformedPoint(x,y) - returns an DOMPoint
     trackTransforms(ctx){
-        var xform = new DOMMatrix();
+        let xform = new DOMMatrix();
         ctx.getTransform = function(){ return xform; };
         
-        var savedTransforms = [];
-        var save = ctx.save;
+        let savedTransforms = [];
+        let save = ctx.save;
         ctx.save = function(){
             savedTransforms.push(xform.translate(0,0));
             return save.call(ctx);
         };
-        var restore = ctx.restore;
+        let restore = ctx.restore;
         ctx.restore = function(){
             xform = savedTransforms.pop();
             return restore.call(ctx);
         };
 
-        var scale = ctx.scale;
+        let scale = ctx.scale;
         ctx.scale = function(sx,sy){
             xform = xform.scale(sx,sy);
             return scale.call(ctx,sx,sy);
         };
-        var rotate = ctx.rotate;
+        let rotate = ctx.rotate;
         ctx.rotate = function(radians){
             xform = xform.rotate(radians*180/Math.PI);
             return rotate.call(ctx,radians);
         };
-        var translate = ctx.translate;
+        let translate = ctx.translate;
         ctx.translate = function(dx,dy){
             xform = xform.translate(dx,dy);
             return translate.call(ctx,dx,dy);
         };
-        var transform = ctx.transform;
+        let transform = ctx.transform;
         ctx.transform = function(a,b,c,d,e,f){
-            var m2 = new DOMMatrix(); //svg.createSVGMatrix();
+            let m2 = new DOMMatrix(); //svg.createSVGMatrix();
             m2.a=a; m2.b=b; m2.c=c; m2.d=d; m2.e=e; m2.f=f;
             xform = xform.multiply(m2);
             return transform.call(ctx,a,b,c,d,e,f);
         };
-        var setTransform = ctx.setTransform;
+        let setTransform = ctx.setTransform;
         ctx.setTransform = function(a,b,c,d,e,f){
             xform.a = a;
             xform.b = b;
@@ -143,7 +136,7 @@ export class InteractiveCanvas {
             xform.f = f;
             return setTransform.call(ctx,a,b,c,d,e,f);
         };
-        var pt  = new DOMPoint();
+        let pt  = new DOMPoint();
         ctx.transformedPoint = function(x,y){
             pt.x=x; pt.y=y;
             return pt.matrixTransform(xform.inverse());
@@ -158,7 +151,7 @@ export class InteractiveCanvas {
 
     start() {
         if (this.animationId === null) {
-            this.events_enabled = true;
+            this.setup_listeners();
             this.renderLoop();
         }
     }
@@ -166,7 +159,7 @@ export class InteractiveCanvas {
     stop() {
         if (this.animationId !== null) {
             cancelAnimationFrame(this.animationId);
-            this.events_enabled = false;
+            this.remove_listeners();
             this.animationId = null;
         }
     }
