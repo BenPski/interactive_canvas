@@ -8,8 +8,8 @@ export class InteractiveCanvas {
         this.redraw();
         this.lastX=this.canvas.width/2;
         this.lastY=this.canvas.height/2;
-        this.dragStart=false;
-        this.dragged=false;
+        this.dragStart=null;
+        this.touches=[];
         this.scaleFactor = 1.1;
         this.animationId = null;
         // I don't understand why bind is necessary, but 'this' isn't properly
@@ -18,6 +18,10 @@ export class InteractiveCanvas {
         this.mouseMoveListener = this.handleMouseMove.bind(this);
         this.mouseUpListener = this.handleMouseUp.bind(this);
         this.scrollListener = this.handleScroll.bind(this);
+        this.touchStartListener = this.handleTouchStart.bind(this);
+        this.touchMoveListener = this.handleTouchMove.bind(this);
+        this.touchEndListener = this.handleTouchEnd.bind(this);
+
     }
 
     setup_listeners() {
@@ -26,6 +30,10 @@ export class InteractiveCanvas {
         this.canvas.addEventListener('mouseup',this.mouseUpListener,false);
         this.canvas.addEventListener('DOMMouseScroll',this.scrollListener,false);
         this.canvas.addEventListener('mousewheel',this.scrollListener,false);
+        this.canvas.addEventListener('touchstart',this.touchStartListener,false);
+        this.canvas.addEventListener('touchmove',this.touchMoveListener,false);
+        this.canvas.addEventListener('touchend',this.touchEndListener,false);
+        this.canvas.addEventListener('touchcancel',this.touchEndListener,false);
     }
 
     remove_listeners() {
@@ -34,6 +42,10 @@ export class InteractiveCanvas {
         this.canvas.removeEventListener('mouseup',this.mouseUpListener,false);
         this.canvas.removeEventListener('DOMMouseScroll',this.scrollListener,false);
         this.canvas.removeEventListener('mousewheel',this.scrollListener,false);
+        this.canvas.addEventListener('touchstart',this.touchStartListener,false);
+        this.canvas.addEventListener('touchmove',this.touchMoveListener,false);
+        this.canvas.addEventListener('touchend',this.touchEndListener,false);
+        this.canvas.addEventListener('touchcancel',this.touchEndListener,false);
     }
 
     clear() {
@@ -61,13 +73,11 @@ export class InteractiveCanvas {
         this.lastX = evt.offsetX || (evt.pageX - this.canvas.offsetLeft);
         this.lastY = evt.offsetY || (evt.pageY - this.canvas.offsetTop);
         this.dragStart = this.ctx.transformedPoint(this.lastX,this.lastY);
-        this.dragged = false;
     }
 
     handleMouseMove(evt) {
         this.lastX = evt.offsetX || (evt.pageX - this.canvas.offsetLeft);
         this.lastY = evt.offsetY || (evt.pageY - this.canvas.offsetTop);
-        this.dragged = true;
         if (this.dragStart){
             let pt = this.ctx.transformedPoint(this.lastX,this.lastY);
             this.ctx.translate(pt.x-this.dragStart.x,pt.y-this.dragStart.y);
@@ -77,14 +87,83 @@ export class InteractiveCanvas {
 
     handleMouseUp(evt) {
         this.dragStart = null;
-        if (!this.dragged) this.zoom(evt.shiftKey ? -1 : 1 );
     }
 
-    handleScroll(evt){
+    handleScroll(evt) {
         let delta = evt.wheelDelta ? evt.wheelDelta/40 : evt.detail ? -evt.detail : 0;
         if (delta) this.zoom(delta);
         return evt.preventDefault() && false;
     };
+
+    handleTouchStart(evt) {
+        evt.preventDefault();
+        const touches = evt.changedTouches;
+        for (let i=0; i<touches.length; i++) {
+            this.touches.push(touches[i]);
+        }
+        let points = [];
+        for (let i=0; i<this.touches.length; i++) {
+            points.push({x: this.touches[i].pageX, y: this.touches[i].pageY});
+        }
+        let center = centroid(points);
+        this.lastX = center.x;
+        this.lastY = center.y;
+        this.dragStart = this.ctx.transformedPoint(this.lastX,this.lastY);
+    }
+
+    handleTouchMove(evt) {
+        evt.preventDefault();
+        const touches = evt.changedTouches;
+        let prev_points = [];
+        let points = [];
+        for (let i=0; i<touches.length; i++) {
+            let idx = this.getTouchIndex(touches[i]);
+            if (idx >= 0) {
+                let touch_curr = touches[i];
+                let touch_prev = this.touches[idx];
+                prev_points.push({x: touch_prev.pageX, y: touch_prev.pageY});
+                points.push({x: touch_curr.pageX, y: touch_curr.pageY});
+            } else {
+                console.log("A touch seems to have appeared without a start event", touches[i]); 
+            }
+        }
+        let prev_center = centroid(prev_points);
+        let center = centroid(points);
+        this.lastX = center.x;
+        this.lastY = center.y;
+        if (this.dragStart) {
+            let pt = this.ctx.transformedPoint(this.lastX,this.lastY);
+            this.ctx.translate(pt.x-this.dragStart.x,pt.y-this.dragStart.y);
+        }
+        if (points.length > 1) {
+            let r_new = averageDistance(points, center);
+            let r_old = averageDistance(prev_points, prev_center);
+            let scale = r_new/r_old;
+            this.ctx.scale(scale, scale);
+        }
+    }
+
+    handleTouchEnd(evt) {
+        evt.preventDefault();
+        const touches = evt.changedTouches;
+        for (let i=0; i<touches.length; i++) {
+            let idx = this.getTouchIndex(touches[i]);
+            if (idx >= 0) {
+                this.touches.splice(idx, 1);
+            } else {
+                console.log("A touch seems to have appeared without a start event", touches[i]); 
+            }
+        }
+    }
+
+    getTouchIndex(touch) {
+        for (let j=0; j<this.touches.length; j++) {
+            if (this.touches[j].identifier == touch.identifier) {
+                return j;
+            }
+        }
+        return -1;
+    }
 
     // Adds ctx.getTransform() - returns a DOMMatrix
     // Adds ctx.transformedPoint(x,y) - returns an DOMPoint
@@ -163,4 +242,22 @@ export class InteractiveCanvas {
             this.animationId = null;
         }
     }
+}
+
+function centroid(points) {
+    let x = 0;
+    let y = 0;
+    for (let i=0; i<points.length; i++) {
+        x += points[i].x;
+        y += points[i].y;
+    }
+    return {x: x/points.length, y: y/points.length};
+}
+
+function averageDistance(points, center) {
+    let dist = 0;
+    for (let i=0; i<points.length; i++) {
+        dist += Math.sqrt((points[i].x-center.x)**2 + (points[i].y-center.y)**2);
+    }
+    return dist/points.length;
 }
