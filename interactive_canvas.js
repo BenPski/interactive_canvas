@@ -115,7 +115,7 @@ export class InteractiveCanvas {
 
     handleTouchMove(evt) {
         evt.preventDefault();
-        const touches = evt.changedTouches;
+        const touches = evt.touches;
         let points = [];
         for (let i=0; i<touches.length; i++) {
             let idx = this.getTouchIndex(touches[i]);
