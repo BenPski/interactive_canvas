@@ -1,6 +1,6 @@
 {
   "name": "interactive_canvas",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Make a canvas zoomable a pannable with your mouse.",
   "main": "interactive_canvas.js",
   "scripts": {
