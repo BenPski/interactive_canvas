@@ -1,5 +1,4 @@
-// largely yoinked from http://phrogz.net/tmp/canvas_zoom_to_cursor.html
-export class InteractiveCanvas {
+class InteractiveCanvas {
     constructor(canvas, draw) {
         this.canvas = canvas;
         let ctx = canvas.getContext('2d');
@@ -97,6 +96,7 @@ export class InteractiveCanvas {
     };
 
     handleTouchStart(evt) {
+        console.log("touch start");
         evt.preventDefault();
         const touches = evt.changedTouches;
         for (let i=0; i<touches.length; i++) {
@@ -114,8 +114,10 @@ export class InteractiveCanvas {
     }
 
     handleTouchMove(evt) {
+        console.log("touch move");
         evt.preventDefault();
         const touches = evt.changedTouches;
+        console.log(this.touches, touches);
         let points = [];
         for (let i=0; i<touches.length; i++) {
             let idx = this.getTouchIndex(touches[i]);
@@ -145,6 +147,7 @@ export class InteractiveCanvas {
     }
 
     handleTouchEnd(evt) {
+        console.log("touch end");
         evt.preventDefault();
         const touches = evt.changedTouches;
         for (let i=0; i<touches.length; i++) {
@@ -276,3 +279,134 @@ function averageDistance(points, center) {
     }
     return dist/points.length;
 }
+
+const canvas = document.getElementById('canvas');
+
+canvas.width = 500;
+canvas.height = 500;
+
+function draw(ctx) {
+    // testing control points
+    var pt = ctx.transformedPoint(200, 200);
+    ctx.fillStyle = "black";
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 10, 0, 2*Math.PI);
+    ctx.fill();
+    
+    var pt = ctx.transformedPoint(180, 200);
+    ctx.fillStyle = "black";
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 10, 0, 2*Math.PI);
+    ctx.fill();
+    
+    var pt = ctx.transformedPoint(300, 300);
+    ctx.fillStyle = "black";
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 10, 0, 2*Math.PI);
+    ctx.fill();
+
+    var pt = ctx.transformedPoint(320, 300);
+    ctx.fillStyle = "black";
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 10, 0, 2*Math.PI);
+    ctx.fill();
+
+
+
+
+    ctx.fillStyle = "red";
+    ctx.beginPath();
+    ctx.arc(250, 250,20,0,2*Math.PI);
+    ctx.fill();
+}
+
+var ic = new InteractiveCanvas(canvas, draw);
+
+ic.start();
+
+
+// mocking touch events
+
+function simTouch(id, x, y, element, type) {
+    const touch = new Touch({
+                identifier: id,
+                target: element,
+                pageX: y,
+                pageY: y,
+                clientX: x,
+                clientY: y,
+            });
+    
+    const event = new TouchEvent(type, {
+        touches: [ touch ],
+        changedTouches: [ touch ],
+    });
+    element.dispatchEvent(event);
+};
+
+//setTimeout(() => simTouch(0, 50, 50, canvas, "touchstart"), 100);
+//setTimeout(() => simTouch(1, 50, 50, canvas, "touchstart"), 100);
+//setTimeout(() => simTouch(0, 50, 200, canvas, "touchmove"), 200);
+//setTimeout(() => simTouch(1, 100, 0, canvas, "touchmove"), 200);
+//setTimeout(() => simTouch(0, 60, 60, canvas, "touchend"), 300);
+//setTimeout(() => simTouch(1, 200, 60, canvas, "touchend"), 300);
+
+function canvasTouch(id, x, y) {
+    var t = new Touch({
+        identifier: id,
+        target: canvas,
+        pageX: x,
+        pageY: y,
+        clientY: y,
+        clientX: x,
+    });
+    return t;
+}
+
+function simTouchZoom() {
+    var firstTouches = [canvasTouch(0, 200, 200), canvasTouch(1, 300, 300)];
+    const event1 = new TouchEvent("touchstart", {
+        touches: firstTouches,
+        changedTouches: firstTouches,
+    });
+    canvas.dispatchEvent(event1);
+
+    var secondTouches = [canvasTouch(0, 180, 200), canvasTouch(1, 320, 300)];
+    const event2 = new TouchEvent("touchmove", {
+        touches: secondTouches,
+        changedTouches: secondTouches,
+    });
+    canvas.dispatchEvent(event2);
+
+    var thirdTouches = [canvasTouch(0, 180, 200), canvasTouch(1, 320, 300)];
+    const event3 = new TouchEvent("touchend", {
+        touches: thirdTouches,
+        changedTouches: thirdTouches,
+    });
+    canvas.dispatchEvent(event3);
+}
+
+function simTouchDrag() {
+    var firstTouches = [canvasTouch(0, 30, 30)];
+    const event1 = new TouchEvent("touchstart", {
+        touches: firstTouches,
+        changedTouches: firstTouches,
+    });
+    canvas.dispatchEvent(event1);
+
+    var secondTouches = [canvasTouch(0, 10, 30)];
+    const event2 = new TouchEvent("touchmove", {
+        touches: secondTouches,
+        changedTouches: secondTouches,
+    });
+    canvas.dispatchEvent(event2);
+
+    var thirdTouches = [canvasTouch(0, 10, 30)];
+    const event3 = new TouchEvent("touchend", {
+        touches: thirdTouches,
+        changedTouches: thirdTouches,
+    });
+    canvas.dispatchEvent(event3);
+}
+simTouchDrag();
+simTouchZoom();
